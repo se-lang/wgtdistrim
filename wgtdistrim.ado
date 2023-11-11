@@ -1,4 +1,4 @@
-*! version 0.1.0  10nov2023
+*! version 0.2.0  11nov2023
 program wgtdistrim
     
     version 16.1
@@ -135,13 +135,12 @@ real scalar mreldif_w_kt(
     real scalar    s2
     real scalar    alpha
     real scalar    beta
-    real rowvector w_op
-    real matrix    K
+    real scalar    w_op
     real scalar    mreldif
     
     
     w_bar = mean(w_kt)
-    s2    = quadcolsum((w_kt:-w_bar):^2/n)
+    s2    = quadcolsum((w_kt:-w_bar):^2 / n)
     /*
         (6) in Potter (1990, 227) uses the population variance
         dividing by n, not (n-1).
@@ -155,15 +154,9 @@ real scalar mreldif_w_kt(
     alpha = (w_bar*(n*w_bar-1) / (n*s2)) + 2
     beta  = (n*w_bar-1)*(alpha-1)
     
-    w_op = 1:/(n*invibetatail(alpha,beta,(cutoff,1-cutoff)))
+    w_op = 1/(n*invibetatail(alpha,beta,1-cutoff))
     
-    /*
-        The notation below follows Chen et al. (2017, 232)
-    */
-    
-    K = (w_kt:<=w_op[1], w_kt:>=w_op[2])
-    
-    mreldif = any(K) ? trim_weights(w_kt, w_op, K) : 0
+    mreldif = trim_weights(w_kt, w_op)
     
     summarize_iteration(iteration, minmax(w_kt), mreldif)
     
@@ -174,32 +167,37 @@ real scalar mreldif_w_kt(
 real scalar trim_weights(
     
     real colvector w_kt,
-    real rowvector w_op,
-    real matrix    K
+    real scalar    w_op
     
     )
 {
-    real colvector w_was
+    real colvector kappa
     real scalar    gamma
+    real colvector w_was
     
+    
+    /*
+        The notation below follows Chen et al. (2017, 232)
+    */
+    
+    kappa = (w_kt:>w_op)
+    
+    if ( !any(kappa) )
+        return(0)
     
     w_was = w_kt
     
     gamma = (
-        (quadcolsum(w_kt)-quadsum(K:*w_op)) 
+        (quadcolsum(w_kt)-quadcolsum(kappa:*w_op)) 
         / 
-        quadcolsum((1:-rowsum(K)):*w_kt)
+        quadcolsum((1:-kappa):*w_kt)
         )
     
     w_kt = gamma:*w_kt
     
-    if ( any(K[,1]) )
-        w_kt[selectindex(K[,1])] = J(colsum(K[,1]),1,w_op[1])
+    w_kt[selectindex(kappa)] = J(colsum(kappa),1,w_op)
     
-    if ( any(K[,2]) )
-        w_kt[selectindex(K[,2])] = J(colsum(K[,2]),1,w_op[2])
-    
-    return( mreldif(w_was,w_kt) )
+    return( mreldif(w_kt,w_was) )
 }
 
 
@@ -211,10 +209,10 @@ void summarize_iteration(
     
     )
 {
-	printf("{txt}Iteration %f:", iteration)
-    printf("{col 20}{txt}min  = {res}%9.0g", min_max[1])
-    printf("{col 40}{txt}max  = {res}%9.0g", min_max[2])
-    printf("{col 60}{txt}diff = {res}%9.0g", mreldif)
+    printf("{txt}Iteration %f:", iteration)
+    printf("{col 20}{txt}min = {res}%9.0g", min_max[1])
+    printf("{col 40}{txt}max = {res}%9.0g", min_max[2])
+    printf("{col 60}{txt}rel. diff = {res}%9.0g", mreldif)
     printf("\n")
 }
 
@@ -222,7 +220,7 @@ void summarize_iteration(
 void confirm_obs_and_weights(
     
     real scalar    n, 
-    real colvector w_i
+    real colvector w_kt
     
     )
 {
@@ -237,12 +235,15 @@ void confirm_obs_and_weights(
                 for 1/n <= w <= .
     */
     
-    if ( !all((1/n):<=w_i) ) {
+    if ( !all((1/n):<=w_kt) ) {
         
         errprintf("weights must be greater than %f\n", 1/n)
         exit(459)
         
     }
+    
+    if ( any(w_kt:<1) )
+        printf("{txt}note: weights less than 1 encountered\n\n")
 }
 
 
@@ -250,3 +251,11 @@ end
 
 
 exit
+
+
+/*  _________________________________________________________________________
+                                                              version history
+
+0.2.0   11nov2023   trim large weights from upper tail only
+                    warning for sampling weights < 1
+0.1.0   10nov2023   upload to private GitHub repository

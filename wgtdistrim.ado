@@ -1,4 +1,4 @@
-*! version 0.3.0  14nov2023
+*! version 0.4.0  14nov2023
 program wgtdistrim
     
     version 16.1
@@ -6,14 +6,14 @@ program wgtdistrim
     syntax varname(numeric) [ if ] [ in ] ///
     , Generate(namelist max=2)            ///
     [                                     ///
-        LOwer(real .001)                  ///
-		UPper(real .001)                  ///
-		ITERate(integer 10)               ///
+        LOwer(numlist max=1 >=0 <1)       ///
+        UPper(numlist max=1 >=0 <1)       ///
+        ITERate(integer 10)               ///
         TOLerance(real 0)                 ///
+        NORMalize                         ///
     ]
     
     marksample touse
-    quietly replace `touse' = 0 if (`varlist' == 0)
     
     local wgtvar : copy local varlist
     
@@ -27,18 +27,6 @@ program wgtdistrim
             varlist  name of new variable from generate()
     */
     
-    if ( (`lower'<=0) | (`lower'>=1) ) ///
-        option_invalid lower() 125
-		
-	 if ( (`upper'<=0) | (`upper'>=1) ) ///
-        option_invalid upper() 125
-		
-	if (`"`lower'"' == "") ///
-		local lower = 0
-	
-	if (`"`upper'"' == "") ///
-		local upper = 0
-    
     if (`iterate' < 1) ///
         option_invalid iterate() 125
     
@@ -48,15 +36,22 @@ program wgtdistrim
     capture assert `wgtvar' >= 0 if `touse' , fast
     if ( _rc ) error 402 // negative weights encountered  
     
-    mata : wgtdistrim(       ///
-        st_local("wgtvar"),  ///
-        st_local("touse"),   ///
-        `lower',             ///
-        `upper',             ///
-        `iterate',           ///
-        `tolerance',         ///
-        st_local("typlist"), ///
-        st_local("varlist")  ///
+    if ("`lower'" == "") ///
+        local lower 0
+    
+    if ("`upper'" == "") ///
+        local upper 0.01
+    
+    mata : wgtdistrim(                ///
+        st_local("wgtvar"),           ///
+        st_local("touse"),            ///
+        `lower',                      ///
+        `upper',                      ///
+        `iterate',                    ///
+        `tolerance',                  ///
+        ("`normalize'"=="normalize"), ///
+        st_local("typlist"),          ///
+        st_local("varlist")           ///
         )
     
 end
@@ -64,7 +59,9 @@ end
 
 program typlist_and_varlist_of
     
-    syntax newvarname(numeric)
+    capture noisily syntax newvarname(numeric)
+    if ( _rc ) ///
+        option_invalid_generate() _rc
     
     if ("`varlist'" == "") ///
         option_invalid generate() 102
@@ -100,14 +97,15 @@ mata set mataoptimize on
 
 void wgtdistrim(
     
-    string scalar wgtvar,
-    string scalar touse,
-    real   scalar lower,
-    real   scalar upper,
-    real   scalar iter,
-    real   scalar tolerance,
-    string scalar typlist,
-    string scalar varlist
+    string scalar    wgtvar,
+    string scalar    touse,
+    real   scalar    lower,
+    real   scalar    upper,
+    real   scalar    iter,
+    real   scalar    tolerance,
+    real   scalar    normalize,
+    string scalar    typlist,
+    string scalar    varlist
     
     )
 {
@@ -124,9 +122,16 @@ void wgtdistrim(
     summarize_iteration(0, minmax(w_kt), .)
     
     for (i=1; i<=iter; i++) {
-    	
+        
         if (mreldif_w_kt(w_kt,n,lower,upper,i) <= tolerance)
             break
+        
+    }
+    
+    if ( normalize ) {
+        
+        w_kt = w_kt:/mean(w_kt)
+        summarize_iteration(min((i,iter)), minmax(w_kt), .)
         
     }
     
@@ -153,15 +158,12 @@ real scalar mreldif_w_kt(
     
     
     w_bar = mean(w_kt)
-    s2    = quadcolsum((w_kt:-w_bar):^2 / n)
+    s2    = quadvariance(w_kt)
     /*
         (6) in Potter (1990, 227) uses the population variance
         dividing by n, not (n-1).
         
-        Perhaps, we should rather use the standard sample variance
-        dividing by (n-1), implemented in
-        
-    s2    = quadvariance(w_i)
+    s2    = quadcolsum((w_kt:-w_bar):^2 / n)
     */
     
     alpha = (w_bar*(n*w_bar-1) / (n*s2)) + 2
@@ -193,7 +195,7 @@ real scalar trim_weights(
         The notation below follows Chen et al. (2017, 232)
     */
     
-    kappa = (w_kt:<=w_op[1],w_kt:>=w_op[2],(w_kt:<=w_op[1] | w_kt:>=w_op[2]))
+    kappa = (w_kt:<=w_op[1], w_kt:>=w_op[2])
     
     if ( !any(kappa) )
         return(0)
@@ -201,15 +203,18 @@ real scalar trim_weights(
     w_was = w_kt
     
     gamma = (
-        (quadcolsum(w_kt)-quadcolsum(kappa[.,1]:*w_op[1]-quadcolsum(kappa[.,2]:*w_op[2])) 
+        (quadcolsum(w_kt)-quadsum(kappa:*w_op)) 
         / 
-        quadcolsum((1:-kappa[.,3]):*w_kt)
+        quadcolsum((1:-rowsum(kappa)):*w_kt)
         )
     
     w_kt = gamma:*w_kt
     
-    w_kt[selectindex(kappa[.,1])] = J(colsum(kappa[.,1]),1,w_op[1])
-    w_kt[selectindex(kappa[.,2])] = J(colsum(kappa[.,2]),1,w_op[2])
+    if ( any(kappa[,1]) )
+        w_kt[selectindex(kappa[,1])] = J(colsum(kappa[,1]),1,w_op[1])
+    
+    if ( any(kappa[,2] ) )
+        w_kt[selectindex(kappa[,2])] = J(colsum(kappa[,2]),1,w_op[2])
     
     return( mreldif(w_kt,w_was) )
 }
@@ -270,7 +275,10 @@ exit
 /*  _________________________________________________________________________
                                                               version history
 
-															  
+0.4.0   14nov2023   defaults upper(.01) lower(0)
+                    use (unbiased) sample variance 
+                    no longer allow zero weights
+                    more informative error message for generate()
 0.3.0   14nov2023   specify separate trimming levels for upper and lower bound
 0.2.0   11nov2023   trim large weights from upper tail only
                     warning for sampling weights < 1

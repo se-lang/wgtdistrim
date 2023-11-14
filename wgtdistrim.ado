@@ -1,4 +1,4 @@
-*! version 0.2.0  11nov2023
+*! version 0.3.0  14nov2023
 program wgtdistrim
     
     version 16.1
@@ -6,8 +6,9 @@ program wgtdistrim
     syntax varname(numeric) [ if ] [ in ] ///
     , Generate(namelist max=2)            ///
     [                                     ///
-        CUToff(real .001)                 ///
-        ITERate(integer 10)               ///
+        LOwer(real .001)                  ///
+		UPper(real .001)                  ///
+		ITERate(integer 10)               ///
         TOLerance(real 0)                 ///
     ]
     
@@ -26,8 +27,17 @@ program wgtdistrim
             varlist  name of new variable from generate()
     */
     
-    if ( (`cutoff'<=0) | (`cutoff'>=1) ) ///
-        option_invalid cutoff() 125
+    if ( (`lower'<=0) | (`lower'>=1) ) ///
+        option_invalid lower() 125
+		
+	 if ( (`upper'<=0) | (`upper'>=1) ) ///
+        option_invalid upper() 125
+		
+	if (`"`lower'"' == "") ///
+		local lower = 0
+	
+	if (`"`upper'"' == "") ///
+		local upper = 0
     
     if (`iterate' < 1) ///
         option_invalid iterate() 125
@@ -41,7 +51,8 @@ program wgtdistrim
     mata : wgtdistrim(       ///
         st_local("wgtvar"),  ///
         st_local("touse"),   ///
-        `cutoff',            ///
+        `lower',             ///
+        `upper',             ///
         `iterate',           ///
         `tolerance',         ///
         st_local("typlist"), ///
@@ -91,7 +102,8 @@ void wgtdistrim(
     
     string scalar wgtvar,
     string scalar touse,
-    real   scalar cutoff,
+    real   scalar lower,
+    real   scalar upper,
     real   scalar iter,
     real   scalar tolerance,
     string scalar typlist,
@@ -113,7 +125,7 @@ void wgtdistrim(
     
     for (i=1; i<=iter; i++) {
     	
-        if (mreldif_w_kt(w_kt,n,cutoff,i) <= tolerance)
+        if (mreldif_w_kt(w_kt,n,lower,upper,i) <= tolerance)
             break
         
     }
@@ -126,7 +138,8 @@ real scalar mreldif_w_kt(
     
     real colvector w_kt,
     real scalar    n,
-    real scalar    cutoff,
+    real scalar    lower,
+    real scalar    upper,
     real scalar    iteration
     
     )
@@ -135,7 +148,7 @@ real scalar mreldif_w_kt(
     real scalar    s2
     real scalar    alpha
     real scalar    beta
-    real scalar    w_op
+    real rowvector w_op
     real scalar    mreldif
     
     
@@ -154,7 +167,7 @@ real scalar mreldif_w_kt(
     alpha = (w_bar*(n*w_bar-1) / (n*s2)) + 2
     beta  = (n*w_bar-1)*(alpha-1)
     
-    w_op = 1/(n*invibetatail(alpha,beta,1-cutoff))
+    w_op = 1:/(n*invibetatail(alpha,beta,(lower,1-upper)))
     
     mreldif = trim_weights(w_kt, w_op)
     
@@ -167,11 +180,11 @@ real scalar mreldif_w_kt(
 real scalar trim_weights(
     
     real colvector w_kt,
-    real scalar    w_op
+    real rowvector w_op
     
     )
 {
-    real colvector kappa
+    real matrix    kappa
     real scalar    gamma
     real colvector w_was
     
@@ -180,7 +193,7 @@ real scalar trim_weights(
         The notation below follows Chen et al. (2017, 232)
     */
     
-    kappa = (w_kt:>w_op)
+    kappa = (w_kt:<=w_op[1],w_kt:>=w_op[2],(w_kt:<=w_op[1] | w_kt:>=w_op[2]))
     
     if ( !any(kappa) )
         return(0)
@@ -188,14 +201,15 @@ real scalar trim_weights(
     w_was = w_kt
     
     gamma = (
-        (quadcolsum(w_kt)-quadcolsum(kappa:*w_op)) 
+        (quadcolsum(w_kt)-quadcolsum(kappa[.,1]:*w_op[1]-quadcolsum(kappa[.,2]:*w_op[2])) 
         / 
-        quadcolsum((1:-kappa):*w_kt)
+        quadcolsum((1:-kappa[.,3]):*w_kt)
         )
     
     w_kt = gamma:*w_kt
     
-    w_kt[selectindex(kappa)] = J(colsum(kappa),1,w_op)
+    w_kt[selectindex(kappa[.,1])] = J(colsum(kappa[.,1]),1,w_op[1])
+    w_kt[selectindex(kappa[.,2])] = J(colsum(kappa[.,2]),1,w_op[2])
     
     return( mreldif(w_kt,w_was) )
 }
@@ -256,6 +270,8 @@ exit
 /*  _________________________________________________________________________
                                                               version history
 
+															  
+0.3.0   14nov2023   specify separate trimming levels for upper and lower bound
 0.2.0   11nov2023   trim large weights from upper tail only
                     warning for sampling weights < 1
 0.1.0   10nov2023   upload to private GitHub repository

@@ -1,13 +1,13 @@
-*! version 0.4.0  14nov2023
+*! version 0.5.0  14nov2023
 program wgtdistrim
     
     version 16.1
     
     syntax varname(numeric) [ if ] [ in ] ///
     , Generate(namelist max=2)            ///
+      UPper(real)                         ///
     [                                     ///
-        LOwer(numlist max=1 >=0 <1)       ///
-        UPper(numlist max=1 >=0 <1)       ///
+        LOwer(real 0)                     ///
         ITERate(integer 10)               ///
         TOLerance(real 0)                 ///
         NORMalize                         ///
@@ -27,26 +27,22 @@ program wgtdistrim
             varlist  name of new variable from generate()
     */
     
+    if ( (`upper'<0) | (`upper'>=1) ) ///
+        option_invalid upper() 125
+    
+    if ( (`lower'<0) | (`lower'>=1) ) ///
+        option_invalid lower() 125
+    
     if (`iterate' < 1) ///
         option_invalid iterate() 125
     
     if (`tolerance' < 0) ///
         option_invalid tolerance() 125
     
-    capture assert `wgtvar' >= 0 if `touse' , fast
-    if ( _rc ) error 402 // negative weights encountered  
-    
-    if ("`lower'" == "") ///
-        local lower 0
-    
-    if ("`upper'" == "") ///
-        local upper 0.01
-    
     mata : wgtdistrim(                ///
         st_local("wgtvar"),           ///
         st_local("touse"),            ///
-        `lower',                      ///
-        `upper',                      ///
+        (`lower', 1-`upper'),         ///
         `iterate',                    ///
         `tolerance',                  ///
         ("`normalize'"=="normalize"), ///
@@ -61,7 +57,7 @@ program typlist_and_varlist_of
     
     capture noisily syntax newvarname(numeric)
     if ( _rc ) ///
-        option_invalid_generate() _rc
+        option_invalid generate() _rc
     
     if ("`varlist'" == "") ///
         option_invalid generate() 102
@@ -99,8 +95,7 @@ void wgtdistrim(
     
     string scalar    wgtvar,
     string scalar    touse,
-    real   scalar    lower,
-    real   scalar    upper,
+    real   rowvector lower_upper,
     real   scalar    iter,
     real   scalar    tolerance,
     real   scalar    normalize,
@@ -117,13 +112,13 @@ void wgtdistrim(
     w_kt = st_data(., wgtvar, touse)
     n    = rows(w_kt)
     
-    confirm_obs_and_weights(n, w_kt)
+    confirm_sampling_weights(w_kt, n)
     
     summarize_iteration(0, minmax(w_kt), .)
     
     for (i=1; i<=iter; i++) {
         
-        if (mreldif_w_kt(w_kt,n,lower,upper,i) <= tolerance)
+        if (mreldif_w_kt(w_kt,n,lower_upper,i) <= tolerance)
             break
         
     }
@@ -143,8 +138,7 @@ real scalar mreldif_w_kt(
     
     real colvector w_kt,
     real scalar    n,
-    real scalar    lower,
-    real scalar    upper,
+    real rowvector lower_upper,
     real scalar    iteration
     
     )
@@ -161,7 +155,7 @@ real scalar mreldif_w_kt(
     s2    = quadvariance(w_kt)
     /*
         (6) in Potter (1990, 227) uses the population variance
-        dividing by n, not (n-1).
+        method of momemts estimator, dividing by n, not (n-1)
         
     s2    = quadcolsum((w_kt:-w_bar):^2 / n)
     */
@@ -169,7 +163,7 @@ real scalar mreldif_w_kt(
     alpha = (w_bar*(n*w_bar-1) / (n*s2)) + 2
     beta  = (n*w_bar-1)*(alpha-1)
     
-    w_op = 1:/(n*invibetatail(alpha,beta,(lower,1-upper)))
+    w_op = 1:/(n*invibetatail(alpha,beta,lower_upper))
     
     mreldif = trim_weights(w_kt, w_op)
     
@@ -236,14 +230,14 @@ void summarize_iteration(
 }
 
 
-void confirm_obs_and_weights(
+void confirm_sampling_weights(
     
-    real scalar    n, 
-    real colvector w_kt
+    real colvector w_kt,
+    real scalar    n
     
     )
 {
-    if (n < 2) 
+    if (n < 2)
         exit(error(2000+n)) // insufficient observations
     
     /*
@@ -257,7 +251,7 @@ void confirm_obs_and_weights(
     if ( !all((1/n):<=w_kt) ) {
         
         errprintf("weights must be greater than %f\n", 1/n)
-        exit(459)
+        exit(any(w_kt:<0) ? 402 : 459)
         
     }
     
@@ -275,6 +269,8 @@ exit
 /*  _________________________________________________________________________
                                                               version history
 
+0.5.0   14nov2023   option upper() required; no default
+                    minor refactoring
 0.4.0   14nov2023   defaults upper(.01) lower(0)
                     use (unbiased) sample variance 
                     no longer allow zero weights

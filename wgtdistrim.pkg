@@ -1,0 +1,22 @@
+v 3
+d wgtdistrim: Stata module to trim extreme sampling weights
+d
+d
+d {cmd:wgtdistrim} 
+d
+d KW: weight
+d KW: survey weights
+d KW: weight trimming
+d
+d Requires: Stata version 16.1
+d
+d Distribution-Date: 20231114
+d
+d Author: Sebastian Lang
+d Support: email lang@gdzhw.eu
+d
+d Author: Daniel Klein
+d Support: email klein@gdzhw.eu
+d
+f wgtdistrim.ado
+f wgtdistrim.sthlp

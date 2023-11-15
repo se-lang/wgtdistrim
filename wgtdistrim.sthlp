@@ -191,7 +191,7 @@ Statistical Science, 32(2), 227--248.
 
 {pstd}
 Lang, S., & Klein, D. (2023). WGTDISTRIM: Stata module to trim extreme sampling weights. doi: {browse "https://doi.org/10.7802/2641":10.7802/2641}{break}
-Available from https://raw.githubusercontent.com/se-lang/wgtdistrim/main
+Available from {browse "https://raw.githubusercontent.com/se-lang/wgtdistrim/main"}
 
 
 {...}

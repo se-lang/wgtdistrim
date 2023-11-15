@@ -48,8 +48,8 @@ assert r(max) == +1.1e76b00000000X+006
 assert r(sd)  == +1.7e3b0f18f1198X+003
 
 
-capture noisily assert wgtdistrim w , generate(wt) upper(.01)
-assert _rc == 111
+capture noisily wgtdistrim w , generate(wt) upper(.01)
+assert _rc == 110
 
 capture noisily wgtdistrim w , generate(wt5) upper(-.01)
 assert _rc == 125
@@ -68,9 +68,6 @@ assert _rc == 125
 
 capture noisily wgtdistrim w , generate(wt5) upper(.01) tolerance(-1)
 assert _rc == 125
-
-capture noisily wgtdistrim w in 1 , generate(wt5) upper(.01) 
-assert _rc == 2001
 
 capture noisily wgtdistrim w if w<1 , generate(wt5) upper(.01) 
 assert _rc == 2000

@@ -103,7 +103,7 @@ specifies the probability of occurrence
 of large sampling weights to be trimmed. 
 Large sampling weights with probability of occurence 
 less than {it:#}, where 0 < {it:#} < 1, are trimmed
-to the {it:1-#} percentile of the beta distribution.
+to the 1-{it:#} percentile of the beta distribution.
 Option {opt upper()} is required.
 
 {phang}

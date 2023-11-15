@@ -102,7 +102,8 @@ Option {opt generate()} is required.
 specifies the probability of occurrence 
 of large sampling weights to be trimmed. 
 Large sampling weights with probability of occurence 
-less than {it:#}, where 0 < {it:#} < 1, are trimmed.
+less than {it:#}, where 0 < {it:#} < 1, are trimmed
+to the {it:1-#} percentile of the beta distribution.
 Option {opt upper()} is required.
 
 {phang}
@@ -110,7 +111,8 @@ Option {opt upper()} is required.
 specifies the probability of occurrence 
 of small sampling weights to be trimmed. 
 Small sampling weights with probability of occurence 
-less than {it:#}, where 0 < {it:#} < 1, are trimmed. 
+less than {it:#}, where 0 < {it:#} < 1, are trimmed
+to the {it:#} percentile of the beta distribution.
 Default is {cmd:lower(0)}.
 
 {phang}

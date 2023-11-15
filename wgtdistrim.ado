@@ -1,4 +1,4 @@
-*! version 0.5.0  14nov2023
+*! version 1.0.0  15nov2023
 program wgtdistrim
     
     version 16.1
@@ -155,7 +155,7 @@ real scalar mreldif_w_kt(
     s2    = quadvariance(w_kt)
     /*
         (6) in Potter (1990, 227) uses the population variance
-        method of momemts estimator, dividing by n, not (n-1)
+        method of moments estimator, dividing by n, not (n-1)
         
     s2    = quadcolsum((w_kt:-w_bar):^2 / n)
     */
@@ -269,6 +269,7 @@ exit
 /*  _________________________________________________________________________
                                                               version history
 
+1.0.0   15nov2023   release on public GitHub repository
 0.5.0   14nov2023   option upper() required; no default
                     minor refactoring
 0.4.0   14nov2023   defaults upper(.01) lower(0)

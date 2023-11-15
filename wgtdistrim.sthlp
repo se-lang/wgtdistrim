@@ -1,11 +1,11 @@
 {smcl}
-{* *! version 0.1.0  14nov2023}{...}
+{* *! version 1.0.0  15nov2023}{...}
 {vieweralsosee "[U] weight" "help weight"}{...}
 {vieweralsosee "[SVY] Survey" "help svy"}{...}
 {viewerjumpto "Syntax" "wgtdistrim##syntax"}{...}
 {viewerjumpto "Description" "wgtdistrim##description"}{...}
 {viewerjumpto "Options" "wgtdistrim##options"}{...}
-{viewerjumpto "Example" "wgtdistrim##examples"}{...}
+{viewerjumpto "Examples" "wgtdistrim##examples"}{...}
 {viewerjumpto "References" "wgtdistrim##references"}{...}
 {viewerjumpto "Citation" "wgtdistrim##citeas"}{...}
 {viewerjumpto "Support" "wgtdistrim##support"}{...}
@@ -140,31 +140,27 @@ Normalization is done once, after the trimming procedure.
 {marker examples}{...}
 {title:Examples}
 
-{phang}
-Trim sampling weights only on the right tail of the distribution.
-Sampling weights with probability of occurence 
-less than {it:#}, where 0 < {it:#} < 1, on the 
-estimated beta distribution are trimmed to the 
-{it:1-#} percentile of the beta distribution.
-{break}
+{pstd}
+Trim sampling weights only on the right tail of the beta distribution
+if the probability of occurence is less than 0.01 (1 percent).
+
+{phang2}
 {cmd:. wgtdistrim pweight , generate(double pweight_trimmed) upper(.01)}
 {p_end}
 
-{phang}
-Trim sampling weights on the left and right tail of the distribution.
-Sampling weights with probability of occurence 
-less than or greater than {it:#} (may be different for 
-{opt lower(#)} and {opt upper(#)}, where 0 < {it:#} < 1, on the 
-estimated beta distribution are trimmed to the 
-{it:#} or the {it:1-#} percentile of the beta distribution respectively.
-{break}
+{pstd}
+Trim sampling weights on the left and right tail of the beta distribution
+if the probability of occurence is less than 0.01 (1 percent) on either tail. 
+
+{phang2}
 {cmd:. wgtdistrim pweight , generate(double pweight_trimmed) lower(.01) upper(.01)}
 {p_end}
 
-{phang}
+{pstd}
 Same as above, but also normalize the the trimmed sampling 
 weights to sum to the number of observations.
-{break}
+
+{phang2}
 {cmd:. wgtdistrim pweight , generate(double pweight_trimmed) lower(.01) upper(.01) normalize}
 {p_end}
 

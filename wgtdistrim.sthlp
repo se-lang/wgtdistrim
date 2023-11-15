@@ -68,7 +68,7 @@ to sum to number of observations
 {title:Description}
 
 {pstd}
-{cmd:wgtdistirm} trims extreme sampling weights 
+{cmd:wgtdistrim} trims extreme sampling weights 
 using the weight distribution approach suggested by Potter (1990).
 
 {pstd}

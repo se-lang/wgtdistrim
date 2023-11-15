@@ -132,15 +132,40 @@ The default {opt tolerance()} is 0.
 specifies that the trimmed sampling weights be normalized 
 to sum to the number of observations 
 (with non-missing positive sampling weights).
+Normalization is done once, after the trimming procedure.
 
 
 {...}
 {...}
 {marker examples}{...}
-{title:Example}
+{title:Examples}
 
 {phang}
-{cmd:. wgtdistrim pweight , generate(double pweight_trimmed)}
+Trim sampling weights only on the right tail of the distribution.
+Sampling weights with probability of occurence 
+less than {it:#}, where 0 < {it:#} < 1, on the 
+estimated beta distribution are trimmed to the 
+{it:1-#} percentile of the beta distribution.
+{break}
+{cmd:. wgtdistrim pweight , generate(double pweight_trimmed) upper(.01)}
+{p_end}
+
+{phang}
+Trim sampling weights on the left and right tail of the distribution.
+Sampling weights with probability of occurence 
+less than or greater than {it:#} (may be different for 
+{opt lower(#)} and {opt upper(#)}, where 0 < {it:#} < 1, on the 
+estimated beta distribution are trimmed to the 
+{it:#} or the {it:1-#} percentile of the beta distribution respectively.
+{break}
+{cmd:. wgtdistrim pweight , generate(double pweight_trimmed) lower(.01) upper(.01)}
+{p_end}
+
+{phang}
+Same as above, but also normalize the the trimmed sampling 
+weights to sum to the number of observations.
+{break}
+{cmd:. wgtdistrim pweight , generate(double pweight_trimmed) lower(.01) upper(.01) normalize}
 {p_end}
 
 
@@ -177,6 +202,6 @@ Available from https://raw.githubusercontent.com/se-lang/wgtdistrim/main
 {title:Support}
 
 {pstd}
-{browse "mailto:lang@dzhw.eu":lang@dzhw.eu}{break}
-{browse "mailto:kleing@dzhw.eu":klein@dzhw.eu}{break}
+{browse "mailto:contact@sebastianlang.eu":contact@sebastianlang.eu}{break}
+{browse "mailto:klein.daniel.81@gmail.com":klein.daniel.81@gmail.com}{break}
 {p_end}

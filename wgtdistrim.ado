@@ -301,7 +301,7 @@ exit
 /*  _________________________________________________________________________
                                                               version history
 
-1.1.0   16nov2023   new option showparameters; not documented
+1.1.0   15jan2024   new option showparameters; not documented
 1.0.0   15nov2023   release on public GitHub repository
 0.5.0   14nov2023   option upper() required; no default
                     minor refactoring

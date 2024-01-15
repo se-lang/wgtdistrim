@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0  15nov2023}{...}
+{* *! version 1.0.1  15jan2024}{...}
 {vieweralsosee "[U] weight" "help weight"}{...}
 {vieweralsosee "[SVY] Survey" "help svy"}{...}
 {viewerjumpto "Syntax" "wgtdistrim##syntax"}{...}
@@ -75,9 +75,9 @@ using the weight distribution approach suggested by Potter (1990).
 The reciprocal of the sampling weights are assumed to follow a (scaled) 
 {help ibeta:beta} distribution. 
 The parameters of the beta distribution are estimated from the sampling weights 
-and the trimming levels (cut-offs) are computed for the specified percentiles. 
-Sampling weights that are more extreme than the specified percentiles 
-are trimmed to these percentiles and the excess is distributed equally 
+and the trimming levels (cut-offs) are computed for the specified quantiles. 
+Sampling weights that are more extreme than the specified quantiles 
+are trimmed to these quantiles and the excess is distributed equally 
 among the untrimmed sampling weights 
 so that the sum of the trimmed sampling weights 
 equals the sum of the untrimmed sampling weights. 
@@ -103,7 +103,7 @@ specifies the probability of occurrence
 of large sampling weights to be trimmed. 
 Large sampling weights with probability of occurence 
 less than {it:#}, where 0 < {it:#} < 1, are trimmed
-to the 1-{it:#} percentile of the beta distribution.
+to the 1-{it:#} quantile of the beta distribution.
 Option {opt upper()} is required.
 
 {phang}
@@ -112,7 +112,7 @@ specifies the probability of occurrence
 of small sampling weights to be trimmed. 
 Small sampling weights with probability of occurence 
 less than {it:#}, where 0 < {it:#} < 1, are trimmed
-to the {it:#} percentile of the beta distribution.
+to the {it:#} quantile of the beta distribution.
 Default is {cmd:lower(0)}.
 
 {phang}
@@ -127,14 +127,14 @@ specifies the tolerance for trimmed sampling weights.
 When the relative difference in sampling weights 
 from one iteration to the next is less than or equal to {it:#}, 
 convergence is achieved. 
-The default {opt tolerance()} is 0.
+Default is {cmd:tolerance(0)}.
 
 {phang}
 {opt normalize}
 specifies that the trimmed sampling weights be normalized 
 to sum to the number of observations 
 (with non-missing positive sampling weights).
-Normalization is done once, after the trimming procedure.
+The trimmed weights are normalized once after the last iteration.
 
 
 {...}

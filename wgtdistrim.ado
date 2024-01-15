@@ -1,4 +1,4 @@
-*! version 1.0.0  15nov2023
+*! version 1.1.0  15jan2024
 program wgtdistrim
     
     version 16.1
@@ -11,6 +11,7 @@ program wgtdistrim
         ITERate(integer 10)               ///
         TOLerance(real 0)                 ///
         NORMalize                         ///
+        SHOWPARAMeters                    /// not documented
     ]
     
     marksample touse
@@ -39,15 +40,16 @@ program wgtdistrim
     if (`tolerance' < 0) ///
         option_invalid tolerance() 125
     
-    mata : wgtdistrim(                ///
-        st_local("wgtvar"),           ///
-        st_local("touse"),            ///
-        (`lower', 1-`upper'),         ///
-        `iterate',                    ///
-        `tolerance',                  ///
-        ("`normalize'"=="normalize"), ///
-        st_local("typlist"),          ///
-        st_local("varlist")           ///
+    mata : wgtdistrim(                          ///
+        st_local("wgtvar"),                     ///
+        st_local("touse"),                      ///
+        (`lower', 1-`upper'),                   ///
+        `iterate',                              ///
+        `tolerance',                            ///
+        ("`normalize'"=="normalize"),           ///
+        ("`showparameters'"=="showparameters"), ///
+        st_local("typlist"),                    ///
+        st_local("varlist")                     ///
         )
     
 end
@@ -99,6 +101,7 @@ void wgtdistrim(
     real   scalar    iter,
     real   scalar    tolerance,
     real   scalar    normalize,
+    real   scalar    showparameters,
     string scalar    typlist,
     string scalar    varlist
     
@@ -118,7 +121,7 @@ void wgtdistrim(
     
     for (i=1; i<=iter; i++) {
         
-        if (mreldif_w_kt(w_kt,n,lower_upper,i) <= tolerance)
+        if (mreldif_w_kt(w_kt,n,lower_upper,i,showparameters) <= tolerance)
             break
         
     }
@@ -139,7 +142,8 @@ real scalar mreldif_w_kt(
     real colvector w_kt,
     real scalar    n,
     real rowvector lower_upper,
-    real scalar    iteration
+    real scalar    iteration,
+    real scalar    showparameters
     
     )
 {
@@ -154,8 +158,10 @@ real scalar mreldif_w_kt(
     w_bar = mean(w_kt)
     s2    = quadvariance(w_kt)
     /*
-        (6) in Potter (1990, 227) uses the population variance
-        method of moments estimator, dividing by n, not (n-1)
+        Potter (1990, 227, Eq. 6) 
+        uses the population variance 
+        method of moments estimator
+        dividing by n, not (n-1)
         
     s2    = quadcolsum((w_kt:-w_bar):^2 / n)
     */
@@ -168,6 +174,9 @@ real scalar mreldif_w_kt(
     mreldif = trim_weights(w_kt, w_op)
     
     summarize_iteration(iteration, minmax(w_kt), mreldif)
+    
+    if ( showparameters )
+        showparameters(alpha, beta, w_op)
     
     return(mreldif)
 }
@@ -230,6 +239,22 @@ void summarize_iteration(
 }
 
 
+void showparameters(
+    
+    real scalar    alpha,
+    real scalar    beta,
+    real rowvector w_op
+    
+    )
+{
+    printf("{col 22}{txt}{it}a{sf} = {res}%9.0g", alpha)
+    printf("{col 42}{txt}{it}b{sf} = {res}%9.0g", beta)
+    printf("\n")
+    printf("{col 21}{txt}lb = {res}%9.0g", w_op[1])
+    printf("{col 41}{txt}ub = {res}%9.0g", w_op[2])
+    printf("\n")
+}
+
 void confirm_sampling_weights(
     
     real colvector w_kt,
@@ -246,6 +271,13 @@ void confirm_sampling_weights(
             f(w) = n (1/nw)^(a+1)*(1 - 1/nw)^(b-1) / B(a,b)
             
                 for 1/n <= w <= .
+        
+        This is because
+            
+            1/(n*invibetatail(a,b,0) = 1/n
+            invibetatail(a,b,0)      =   1
+            1/(invibetatail(a,b,1)   =   . > largest value
+            invibetatail(a,b,1)      =   0
     */
     
     if ( !all((1/n):<=w_kt) ) {
@@ -269,6 +301,7 @@ exit
 /*  _________________________________________________________________________
                                                               version history
 
+1.1.0   16nov2023   new option showparameters; not documented
 1.0.0   15nov2023   release on public GitHub repository
 0.5.0   14nov2023   option upper() required; no default
                     minor refactoring

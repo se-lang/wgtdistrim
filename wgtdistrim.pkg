@@ -10,7 +10,7 @@ d KW: weight trimming
 d
 d Requires: Stata version 16.1
 d
-d Distribution-Date: 20240115
+d Distribution-Date: 20250805
 d
 d Author: Sebastian Lang
 d Support: email contact@sebastianlang.eu
@@ -20,3 +20,4 @@ d Support: email klein.daniel.81@gmail.com
 d
 f wgtdistrim.ado
 f wgtdistrim.sthlp
+

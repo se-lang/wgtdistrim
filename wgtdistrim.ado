@@ -1,4 +1,4 @@
-*! version 1.1.0  15jan2024
+*! version 1.2.0  05aug2025
 program wgtdistrim
     
     version 16.1
@@ -10,6 +10,7 @@ program wgtdistrim
         LOwer(real 0)                     ///
         ITERate(integer 10)               ///
         TOLerance(real 0)                 ///
+        MOMVARiance                       ///
         NORMalize                         ///
         SHOWPARAMeters                    /// not documented
     ]
@@ -18,27 +19,27 @@ program wgtdistrim
     
     local wgtvar : copy local varlist
     
-    typlist_and_varlist_of `generate'
+    Typlist_and_varlist_of `generate'
     
     /*
         We now have local macros
         
-            wgtvar  <varname> holding untrimmed weights
-            typlist  type of new variable from generate(), e.g., float
-            varlist  name of new variable from generate()
+            wgtvar      <varname> holding untrimmed weights
+            typlist     type of new variable from generate(), e.g., float
+            varlist     name of new variable from generate()
     */
     
     if ( (`upper'<0) | (`upper'>=1) ) ///
-        option_invalid upper() 125
+        Option_invalid upper() 125
     
     if ( (`lower'<0) | (`lower'>=1) ) ///
-        option_invalid lower() 125
+        Option_invalid lower() 125
     
     if (`iterate' < 1) ///
-        option_invalid iterate() 125
+        Option_invalid iterate() 125
     
     if (`tolerance' < 0) ///
-        option_invalid tolerance() 125
+        Option_invalid tolerance() 125
     
     mata : wgtdistrim(                          ///
         st_local("wgtvar"),                     ///
@@ -46,6 +47,7 @@ program wgtdistrim
         (`lower', 1-`upper'),                   ///
         `iterate',                              ///
         `tolerance',                            ///
+        ("`momvariance'"=="momvariance"),       ///
         ("`normalize'"=="normalize"),           ///
         ("`showparameters'"=="showparameters"), ///
         st_local("typlist"),                    ///
@@ -55,14 +57,14 @@ program wgtdistrim
 end
 
 
-program typlist_and_varlist_of
+program Typlist_and_varlist_of
     
     capture noisily syntax newvarname(numeric)
     if ( _rc ) ///
-        option_invalid generate() _rc
+        Option_invalid generate() _rc
     
     if ("`varlist'" == "") ///
-        option_invalid generate() 102
+        Option_invalid generate() 102
     
     c_local typlist : copy local typlist
     c_local varlist : copy local varlist
@@ -70,7 +72,7 @@ program typlist_and_varlist_of
 end
 
 
-program option_invalid
+program Option_invalid
     
     args option rc
     
@@ -100,6 +102,7 @@ void wgtdistrim(
     real   rowvector lower_upper,
     real   scalar    iter,
     real   scalar    tolerance,
+    real   scalar    momvariance,
     real   scalar    normalize,
     real   scalar    showparameters,
     string scalar    typlist,
@@ -121,7 +124,7 @@ void wgtdistrim(
     
     for (i=1; i<=iter; i++) {
         
-        if (mreldif_w_kt(w_kt,n,lower_upper,i,showparameters) <= tolerance)
+        if (mreldif_w_kt(w_kt,n,momvariance,lower_upper,i,showparameters) <= tolerance)
             break
         
     }
@@ -141,6 +144,7 @@ real scalar mreldif_w_kt(
     
     real colvector w_kt,
     real scalar    n,
+    real scalar    momvariance,
     real rowvector lower_upper,
     real scalar    iteration,
     real scalar    showparameters
@@ -156,15 +160,8 @@ real scalar mreldif_w_kt(
     
     
     w_bar = mean(w_kt)
-    s2    = quadvariance(w_kt)
-    /*
-        Potter (1990, 227, Eq. 6) 
-        uses the population variance 
-        method of moments estimator
-        dividing by n, not (n-1)
-        
-    s2    = quadcolsum((w_kt:-w_bar):^2 / n)
-    */
+    s2    = momvariance ? quadcolsum((w_kt:-w_bar):^2) / n : quadvariance(w_kt)
+                            /* Potter (1990, 227, Eq. 6) */
     
     alpha = (w_bar*(n*w_bar-1) / (n*s2)) + 2
     beta  = (n*w_bar-1)*(alpha-1)
@@ -177,6 +174,13 @@ real scalar mreldif_w_kt(
     
     if ( showparameters )
         showparameters(alpha, beta, w_op)
+    
+    if ( hasmissing(w_kt) ) {
+    	
+        errprintf("missing trimmed weights produced\n")
+        exit(459)
+        
+    }
     
     return(mreldif)
 }
@@ -255,6 +259,7 @@ void showparameters(
     printf("\n")
 }
 
+
 void confirm_sampling_weights(
     
     real colvector w_kt,
@@ -301,6 +306,9 @@ exit
 /*  _________________________________________________________________________
                                                               version history
 
+1.2.0   05aug2025   new option -momvariance- uses MoM variance estimator
+                    exit with error if trimmed weights are missing
+                    subroutine names start with capitalized letters
 1.1.0   15jan2024   new option showparameters; not documented
 1.0.0   15nov2023   release on public GitHub repository
 0.5.0   14nov2023   option upper() required; no default

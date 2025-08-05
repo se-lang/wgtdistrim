@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.1  15jan2024}{...}
+{* *! version 1.1.0  05aug2025}{...}
 {vieweralsosee "[U] weight" "help weight"}{...}
 {vieweralsosee "[SVY] Survey" "help svy"}{...}
 {viewerjumpto "Syntax" "wgtdistrim##syntax"}{...}
@@ -51,6 +51,8 @@ default is {cmd:iterate(10)}
 {p_end}
 {synopt:{opt tol:erance(#)}}tolerance for trimmed sampling weights; 
 default is {cmd:tolerance(0)}
+{p_end}
+{synopt:{opt momvar:inace}}use method of moments estimator for variance
 {p_end}
 {synopt:{opt norm:alize}}normalize trimmed sampling weights 
 to sum to number of observations
@@ -130,11 +132,18 @@ convergence is achieved.
 Default is {cmd:tolerance(0)}.
 
 {phang}
+{opt momvariance}
+specifies that the variance of the sampling weights 
+is estimated using the method of moments estimator, dividing by {it:n}.  
+This is the approach used by Potter (1990, p. 227). 
+By default, the variance is estimated using {it:n}-1 as the divisor.
+
+{phang}
 {opt normalize}
 specifies that the trimmed sampling weights be normalized 
 to sum to the number of observations 
 (with non-missing positive sampling weights).
-The trimmed weights are normalized once after the last iteration.
+The trimmed weights are normalized only once, after the last iteration.
 
 
 {...}
@@ -159,7 +168,7 @@ if the probability of occurence is less than 0.01 (1 percent) on either tail.
 {p_end}
 
 {pstd}
-Same as above, but also normalize the the trimmed sampling 
+Same as above, but also normalize the trimmed sampling 
 weights to sum to the number of observations.
 
 {phang2}
@@ -191,7 +200,7 @@ Statistical Science, 32(2), 227--248.
 
 {pstd}
 Lang, S., & Klein, D. (2023). WGTDISTRIM: Stata module to trim extreme sampling weights. doi: {browse "https://doi.org/10.7802/2641":10.7802/2641}{break}
-Available from {browse "https://raw.githubusercontent.com/se-lang/wgtdistrim/main"}
+Available from {browse "https://github.com/se-lang/wgtdistrim/tree/main"}
 
 
 {...}
